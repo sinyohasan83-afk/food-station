@@ -1,0 +1,8 @@
+# Kredensial database asli — jangan pernah ikut ter-commit
+includes/db.config.php
+
+# Dump SQL berisi contoh akun & hash password — tidak untuk repo publik
+database/*.sql
+
+# Konfigurasi tool lokal
+.claude/
