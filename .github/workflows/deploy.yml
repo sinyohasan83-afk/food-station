@@ -12,25 +12,17 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
-      - name: Upload semua file lewat lftp mirror (retry otomatis, tanpa hapus)
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          set +e
-          for i in 1 2 3 4 5; do
-            echo "=== Percobaan upload ke-$i ==="
-            lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "set ssl:verify-certificate no; set net:max-retries 5; set net:timeout 15; set net:reconnect-interval-base 5; set mirror:parallel-transfer-count 1; mirror --reverse --verbose --exclude-glob .git/ --exclude-glob .git/** --exclude-glob .github/ --exclude-glob database/ --exclude ^includes/db\.config\.php\$ ./ ./; bye"
-            if [ $? -eq 0 ]; then
-              echo "Berhasil di percobaan ke-$i"
-              exit 0
-            fi
-            echo "Percobaan ke-$i gagal, ulangi dalam 5 detik..."
-            sleep 5
-          done
-          echo "Semua 5 percobaan gagal"
-          exit 1
+      - name: FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/database/**
+            **/.gitignore
+            includes/db.config.php

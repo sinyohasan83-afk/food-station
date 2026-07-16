@@ -67,7 +67,7 @@
   <div class="mt-auto pt-4 border-t border-white/5 px-2">
     <div class="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-3 text-center">
       <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Versi Sistem</p>
-      <p class="text-xs text-white/50">v2.2 — 2026</p>
+      <p class="text-xs text-white/50">v2.3 — 2026</p>
     </div>
   </div>
 </aside>
