@@ -47,15 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Username atau password salah, atau akun tidak aktif.';
             }
         } catch (PDOException $e) {
-            // Fallback ke kredensial statis jika database tidak tersedia
-            if ($user === 'admin' && $pass === 'password') {
-                $_SESSION['logged_in'] = true;
-                $_SESSION['username']  = 'Administrator';
-                $_SESSION['user_role'] = 'superadmin';
-                header('Location: dashboard.php');
-                exit;
-            }
-            $error = 'Koneksi database gagal. Pastikan MySQL aktif di XAMPP.';
+            $error = 'Koneksi database gagal. Coba lagi nanti.';
         }
     }
 }
@@ -127,13 +119,14 @@ $assetBase  = '';
       <form method="POST" class="space-y-4">
         <div>
           <label class="block text-[10px] font-bold uppercase tracking-widest text-white/35 mb-1.5 ml-1">Username</label>
-          <input type="text" name="username" placeholder="Masukkan username" value="admin"
+          <input type="text" name="username" placeholder="Masukkan username"
+                 value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
                  class="login-input" required autocomplete="username"/>
         </div>
         <div>
           <label class="block text-[10px] font-bold uppercase tracking-widest text-white/35 mb-1.5 ml-1">Password</label>
           <div class="relative">
-            <input type="password" name="password" placeholder="Masukkan password" value="password"
+            <input type="password" name="password" placeholder="Masukkan password"
                    id="pwdInput" class="login-input pr-12" required autocomplete="current-password"/>
             <button type="button" onclick="togglePwd()" class="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
               <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
