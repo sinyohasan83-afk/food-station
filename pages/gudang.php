@@ -1,15 +1,34 @@
 <?php
-require_once __DIR__ . '/../includes/data.php';
-$units   = $appData['units']['gudang'];
-$kosong  = array_filter($units, fn($u) => $u['status'] === 'Kosong');
-$terisi  = array_filter($units, fn($u) => $u['status'] === 'Terisi');
+require_once __DIR__ . '/../includes/db.php';
+
+$isTenant = isset($_SESSION['tenant_logged_in']) && $_SESSION['tenant_logged_in'] === true;
+$bookingRedirectUrl = $isTenant ? 'portal.php?page=gudang' : 'dashboard.php?page=gudang';
+
+$units = [];
+if ($pdo) {
+    try {
+        $stmt = $pdo->query("
+            SELECT u.*, p.nama AS penyewa_nama
+            FROM units u
+            LEFT JOIN kontrak k ON k.unit_id = u.id AND k.status = 'Aktif'
+            LEFT JOIN penyewa p ON p.id = k.penyewa_id
+            WHERE u.kategori_id = 1
+            ORDER BY u.kode ASC
+        ");
+        $units = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        $units = [];
+    }
+}
+$kosong = array_filter($units, fn($u) => $u['status'] === 'Kosong');
+$terisi = array_filter($units, fn($u) => $u['status'] === 'Terisi');
 ?>
 
 <!-- Header -->
 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
   <div>
     <div class="flex items-center gap-2 mb-1">
-      <a href="dashboard.php" class="text-white/30 hover:text-white/60 text-xs font-semibold transition-colors">Dashboard</a>
+      <a href="<?= $isTenant ? 'portal.php' : 'dashboard.php' ?>" class="text-white/30 hover:text-white/60 text-xs font-semibold transition-colors">Dashboard</a>
       <span class="text-white/20 text-xs">›</span>
       <span class="text-white/60 text-xs font-semibold">Gudang</span>
     </div>
@@ -37,19 +56,22 @@ $terisi  = array_filter($units, fn($u) => $u['status'] === 'Terisi');
 
 <!-- Unit Grid -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="unitGrid">
+  <?php if (empty($units)): ?>
+    <p class="col-span-full text-center text-white/30 text-sm py-8">Belum ada data unit gudang, atau koneksi database gagal.</p>
+  <?php endif; ?>
   <?php foreach ($units as $u):
     $isKosong = $u['status'] === 'Kosong';
+    $luasFmt  = rtrim(rtrim(number_format((float)$u['luas'], 2, '.', ''), '0'), '.') . ' m²';
+    $hargaFmt = 'Rp ' . number_format($u['harga_per_bulan'], 0, ',', '.');
   ?>
     <div class="unit-card glass <?= strtolower($u['status']) ?>" data-status="<?= $u['status'] ?>">
       <!-- Header row -->
       <div class="flex items-start justify-between mb-4">
         <div>
           <p class="text-[9px] font-black uppercase tracking-widest text-white/25 mb-1">ID Unit</p>
-          <p class="text-xl font-black text-white"><?= htmlspecialchars($u['id']) ?></p>
+          <p class="text-xl font-black text-white"><?= htmlspecialchars($u['kode']) ?></p>
         </div>
-        <span class="badge <?= $isKosong ? 'badge-green' : 'badge-red' ?>">
-          <?= $u['status'] ?>
-        </span>
+        <span class="badge <?= $isKosong ? 'badge-green' : 'badge-red' ?>"><?= $u['status'] ?></span>
       </div>
 
       <!-- Details -->
@@ -57,26 +79,30 @@ $terisi  = array_filter($units, fn($u) => $u['status'] === 'Terisi');
       <div class="space-y-1.5 mb-4">
         <div class="flex items-center justify-between text-xs">
           <span class="text-white/30">Luas</span>
-          <span class="font-semibold text-white/60"><?= $u['luas'] ?></span>
+          <span class="font-semibold text-white/60"><?= $luasFmt ?></span>
         </div>
         <div class="flex items-center justify-between text-xs">
           <span class="text-white/30">Harga/Bln</span>
-          <span class="font-bold text-amber-400"><?= $u['harga'] ?></span>
+          <span class="font-bold text-amber-400"><?= $hargaFmt ?></span>
         </div>
         <?php if (!$isKosong): ?>
           <div class="flex items-center justify-between text-xs">
             <span class="text-white/30">Penyewa</span>
-            <span class="font-semibold text-white/60 text-right max-w-[120px] truncate"><?= htmlspecialchars($u['penyewa']) ?></span>
+            <span class="font-semibold text-white/60 text-right max-w-[120px] truncate"><?= htmlspecialchars($u['penyewa_nama'] ?? '-') ?></span>
           </div>
         <?php endif; ?>
       </div>
 
       <!-- Action -->
-      <?php if ($isKosong): ?>
-        <button onclick="openBooking('<?= htmlspecialchars($u['id']) ?>','<?= htmlspecialchars($u['nama']) ?>','<?= $u['harga'] ?>')"
+      <?php if ($isKosong && $isTenant): ?>
+        <button onclick="openBooking(<?= (int)$u['id'] ?>,'<?= htmlspecialchars($u['kode']) ?>','<?= htmlspecialchars($u['nama']) ?>','<?= $hargaFmt ?>')"
                 class="w-full bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 text-xs font-bold py-2.5 rounded-xl transition-all">
           + Booking Unit Ini
         </button>
+      <?php elseif ($isKosong): ?>
+        <div class="w-full bg-white/3 border border-white/8 rounded-xl py-2.5 text-center text-xs text-white/30 font-semibold">
+          Tersedia — kelola lewat Pengajuan Sewa
+        </div>
       <?php else: ?>
         <div class="w-full bg-white/3 border border-white/8 rounded-xl py-2.5 text-center text-xs text-white/25 font-semibold">
           Unit Tidak Tersedia
@@ -86,7 +112,7 @@ $terisi  = array_filter($units, fn($u) => $u['status'] === 'Terisi');
   <?php endforeach; ?>
 </div>
 
-<?php include __DIR__ . '/../includes/booking_modal.php'; ?>
+<?php if ($isTenant): include __DIR__ . '/../includes/booking_modal.php'; endif; ?>
 
 <style>
 .ftab { background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.4); border:1px solid rgba(255,255,255,0.08); }

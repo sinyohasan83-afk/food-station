@@ -1,8 +1,60 @@
 <?php
-require_once __DIR__ . '/../includes/data.php';
-$s = $appData['stats'];
-$totalUnit = $s['gudang']['total'] + $s['toko']['total'] + $s['kantin']['total'];
-$totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['terisi'];
+require_once __DIR__ . '/../includes/db.php';
+
+$stats = [
+    'gudang' => ['tersedia' => 0, 'total' => 0, 'terisi' => 0],
+    'toko'   => ['tersedia' => 0, 'total' => 0, 'terisi' => 0],
+    'kantin' => ['tersedia' => 0, 'total' => 0, 'terisi' => 0],
+];
+$totalPenyewa = 0;
+$kontrakAktif = 0;
+$revenueBulan = 0;
+$aktivitas = [];
+$revenueChart = array_fill(0, 6, 0);
+$revenueLabels = [];
+
+if ($pdo) {
+    try {
+        $catMap = [1 => 'gudang', 2 => 'toko', 3 => 'kantin'];
+        $stmt = $pdo->query("
+            SELECT kategori_id, COUNT(*) total,
+                   SUM(status='Terisi') terisi, SUM(status='Kosong') tersedia
+            FROM units GROUP BY kategori_id
+        ");
+        foreach ($stmt->fetchAll() as $row) {
+            $key = $catMap[$row['kategori_id']] ?? null;
+            if ($key) {
+                $stats[$key] = ['tersedia' => (int)$row['tersedia'], 'total' => (int)$row['total'], 'terisi' => (int)$row['terisi']];
+            }
+        }
+
+        $totalPenyewa = (int)$pdo->query("SELECT COUNT(*) c FROM penyewa")->fetch()['c'];
+        $kontrakAktif = (int)$pdo->query("SELECT COUNT(*) c FROM kontrak WHERE status = 'Aktif'")->fetch()['c'];
+        $revenueBulan = (int)$pdo->query("
+            SELECT COALESCE(SUM(nominal),0) c FROM tagihan
+            WHERE periode_bulan = MONTH(CURDATE()) AND periode_tahun = YEAR(CURDATE())
+        ")->fetch()['c'];
+
+        $aktStmt = $pdo->query("SELECT * FROM aktivitas_log ORDER BY created_at DESC LIMIT 6");
+        $aktivitas = $aktStmt->fetchAll();
+
+        for ($i = 5; $i >= 0; $i--) {
+            $ts = strtotime("-$i months");
+            $bulan = (int)date('n', $ts);
+            $tahun = (int)date('Y', $ts);
+            $revenueLabels[] = date('M', $ts);
+            $rev = $pdo->prepare("SELECT COALESCE(SUM(nominal),0) c FROM tagihan WHERE periode_bulan=? AND periode_tahun=?");
+            $rev->execute([$bulan, $tahun]);
+            $revenueChart[5 - $i] = (int)round(((int)$rev->fetch()['c']) / 1000000);
+        }
+    } catch (PDOException $e) {
+        // biarkan default nol jika query gagal
+    }
+}
+
+$totalUnit   = $stats['gudang']['total'] + $stats['toko']['total'] + $stats['kantin']['total'];
+$totalTerisi = $stats['gudang']['terisi'] + $stats['toko']['terisi'] + $stats['kantin']['terisi'];
+$totalTersedia = $totalUnit - $totalTerisi;
 ?>
 
 <!-- Page Header -->
@@ -20,10 +72,9 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
       <div class="w-11 h-11 rounded-2xl bg-indigo-500/20 flex items-center justify-center">
         <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       </div>
-      <span class="badge badge-indigo">+4 bln ini</span>
     </div>
-    <p class="text-3xl font-black text-white" data-count="128">0</p>
-    <p class="text-xs text-white/35 mt-1 font-semibold uppercase tracking-wide">Total Penyewa Aktif</p>
+    <p class="text-3xl font-black text-white" data-count="<?= $totalPenyewa ?>">0</p>
+    <p class="text-xs text-white/35 mt-1 font-semibold uppercase tracking-wide">Total Data Penyewa</p>
   </div>
 
   <!-- Revenue -->
@@ -32,10 +83,9 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
       <div class="w-11 h-11 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
         <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
-      <span class="badge badge-green">↑ 6%</span>
     </div>
-    <p class="text-3xl font-black text-emerald-400">450<span class="text-lg text-white/50 font-semibold">jt</span></p>
-    <p class="text-xs text-white/35 mt-1 font-semibold uppercase tracking-wide">Estimasi Revenue / Bln</p>
+    <p class="text-3xl font-black text-emerald-400"><?= number_format($revenueBulan / 1000000, 1, ',', '.') ?><span class="text-lg text-white/50 font-semibold">jt</span></p>
+    <p class="text-xs text-white/35 mt-1 font-semibold uppercase tracking-wide">Tagihan Bulan Ini</p>
   </div>
 
   <!-- Unit Tersedia -->
@@ -46,7 +96,7 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
       </div>
       <span class="badge badge-yellow">dari <?= $totalUnit ?></span>
     </div>
-    <p class="text-3xl font-black text-amber-400" data-count="20">0</p>
+    <p class="text-3xl font-black text-amber-400" data-count="<?= $totalTersedia ?>">0</p>
     <p class="text-xs text-white/35 mt-1 font-semibold uppercase tracking-wide">Unit Tersedia</p>
   </div>
 
@@ -58,7 +108,7 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
       </div>
       <span class="badge" style="background:rgba(236,72,153,0.15);color:#f472b6;">Aktif</span>
     </div>
-    <p class="text-3xl font-black text-pink-400" data-count="55">0</p>
+    <p class="text-3xl font-black text-pink-400" data-count="<?= $kontrakAktif ?>">0</p>
     <p class="text-xs text-white/35 mt-1 font-semibold uppercase tracking-wide">Kontrak Berjalan</p>
   </div>
 </div>
@@ -70,16 +120,16 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
   <div class="lg:col-span-2 glass rounded-3xl p-6">
     <div class="flex items-center justify-between mb-5">
       <div>
-        <h3 class="font-bold text-sm text-white">Grafik Pendapatan</h3>
+        <h3 class="font-bold text-sm text-white">Grafik Tagihan</h3>
         <p class="text-xs text-white/30 mt-0.5">6 bulan terakhir (juta rupiah)</p>
       </div>
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-        <span class="text-xs text-white/40">Revenue</span>
+        <span class="text-xs text-white/40">Tagihan</span>
       </div>
     </div>
     <div style="height:200px;">
-      <canvas id="revenueChart"></canvas>
+      <canvas id="revenueChart" data-labels="<?= htmlspecialchars(json_encode($revenueLabels)) ?>" data-values="<?= htmlspecialchars(json_encode($revenueChart)) ?>"></canvas>
     </div>
   </div>
 
@@ -88,14 +138,18 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
     <h3 class="font-bold text-sm text-white mb-1">Tingkat Hunian</h3>
     <p class="text-xs text-white/30 mb-4">Total <?= $totalTerisi ?>/<?= $totalUnit ?> unit terisi</p>
     <div class="flex-1 flex items-center justify-center" style="min-height:140px">
-      <canvas id="occupancyChart"></canvas>
+      <canvas id="occupancyChart" data-values="<?= htmlspecialchars(json_encode([
+        $stats['gudang']['terisi'], $stats['gudang']['tersedia'],
+        $stats['toko']['terisi'],   $stats['toko']['tersedia'],
+        $stats['kantin']['terisi'], $stats['kantin']['tersedia'],
+      ])) ?>"></canvas>
     </div>
     <div class="mt-4 space-y-2">
       <?php
       $legends = [
-        ['Gudang Terisi', '#6366f1', $s['gudang']['terisi'], $s['gudang']['total']],
-        ['Toko Terisi',   '#f59e0b', $s['toko']['terisi'],   $s['toko']['total']],
-        ['Kantin Terisi', '#10b981', $s['kantin']['terisi'],  $s['kantin']['total']],
+        ['Gudang Terisi', '#6366f1', $stats['gudang']['terisi'], max($stats['gudang']['total'], 1)],
+        ['Toko Terisi',   '#f59e0b', $stats['toko']['terisi'],   max($stats['toko']['total'], 1)],
+        ['Kantin Terisi', '#10b981', $stats['kantin']['terisi'],  max($stats['kantin']['total'], 1)],
       ];
       foreach ($legends as [$label, $color, $terisi, $total]):
         $pct = round($terisi/$total*100);
@@ -127,15 +181,19 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
       <h3 class="font-bold text-sm text-white uppercase tracking-wide">Log Aktivitas</h3>
     </div>
     <div class="space-y-3">
+      <?php if (empty($aktivitas)): ?>
+        <p class="text-center text-white/25 text-xs py-6">Belum ada aktivitas tercatat.</p>
+      <?php endif; ?>
       <?php
       $iconMap = [
-        'check' => ['bg'=>'bg-emerald-500/15','text'=>'text-emerald-400','svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'],
-        'box'   => ['bg'=>'bg-indigo-500/15',  'text'=>'text-indigo-400', 'svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>'],
-        'warn'  => ['bg'=>'bg-amber-500/15',   'text'=>'text-amber-400',  'svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>'],
-        'renew' => ['bg'=>'bg-sky-500/15',     'text'=>'text-sky-400',    'svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>'],
+        'pembayaran'    => ['bg'=>'bg-emerald-500/15','text'=>'text-emerald-400','svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'],
+        'kontrak_baru'  => ['bg'=>'bg-indigo-500/15',  'text'=>'text-indigo-400', 'svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>'],
+        'peringatan'    => ['bg'=>'bg-amber-500/15',   'text'=>'text-amber-400',  'svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>'],
+        'perpanjangan'  => ['bg'=>'bg-sky-500/15',     'text'=>'text-sky-400',    'svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>'],
+        'lainnya'       => ['bg'=>'bg-white/10',       'text'=>'text-white/50',   'svg'=>'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'],
       ];
-      foreach ($appData['aktivitas'] as $a):
-        $ic = $iconMap[$a['icon']] ?? $iconMap['check'];
+      foreach ($aktivitas as $a):
+        $ic = $iconMap[$a['tipe']] ?? $iconMap['lainnya'];
       ?>
         <div class="flex items-center gap-3 p-3 rounded-2xl hover:bg-white/3 transition-colors">
           <div class="w-10 h-10 rounded-xl <?= $ic['bg'] ?> <?= $ic['text'] ?> flex items-center justify-center flex-shrink-0">
@@ -143,9 +201,9 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-bold text-white"><?= htmlspecialchars($a['judul']) ?></p>
-            <p class="text-xs text-white/35 truncate"><?= htmlspecialchars($a['sub']) ?></p>
+            <p class="text-xs text-white/35 truncate"><?= htmlspecialchars($a['keterangan'] ?? '') ?></p>
           </div>
-          <span class="text-[10px] text-white/25 font-mono whitespace-nowrap"><?= $a['waktu'] ?></span>
+          <span class="text-[10px] text-white/25 font-mono whitespace-nowrap"><?= date('d M, H:i', strtotime($a['created_at'])) ?></span>
         </div>
       <?php endforeach; ?>
     </div>
@@ -157,13 +215,13 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
     <div class="space-y-5">
       <?php
       $cats = [
-        ['label'=>'Gudang','icon'=>'bg-orange-500/20 text-orange-400','data'=>$s['gudang'],'link'=>'gudang','color'=>'bg-orange-500'],
-        ['label'=>'Toko',  'icon'=>'bg-sky-500/20 text-sky-400',      'data'=>$s['toko'],  'link'=>'toko',  'color'=>'bg-sky-500'],
-        ['label'=>'Kantin','icon'=>'bg-emerald-500/20 text-emerald-400','data'=>$s['kantin'],'link'=>'kantin_gudang','color'=>'bg-emerald-500'],
+        ['label'=>'Gudang','data'=>$stats['gudang'],'link'=>'gudang','color'=>'bg-orange-500'],
+        ['label'=>'Toko',  'data'=>$stats['toko'],  'link'=>'toko',  'color'=>'bg-sky-500'],
+        ['label'=>'Kantin','data'=>$stats['kantin'],'link'=>'kantin_gudang','color'=>'bg-emerald-500'],
       ];
       foreach ($cats as $cat):
         $d = $cat['data'];
-        $pct = round($d['terisi']/$d['total']*100);
+        $pct = $d['total'] > 0 ? round($d['terisi']/$d['total']*100) : 0;
       ?>
         <div>
           <div class="flex items-center justify-between mb-2">
@@ -190,9 +248,9 @@ $totalTerisi = $s['gudang']['terisi'] + $s['toko']['terisi'] + $s['kantin']['ter
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           Data Penyewa
         </a>
-        <a href="dashboard.php?page=tagihan" class="flex items-center justify-center gap-2 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/25 text-emerald-400 rounded-xl py-3 text-xs font-bold transition-all">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-          Penagihan
+        <a href="dashboard.php?page=pengajuan" class="flex items-center justify-center gap-2 bg-amber-600/15 hover:bg-amber-600/25 border border-amber-500/25 text-amber-400 rounded-xl py-3 text-xs font-bold transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Pengajuan Sewa
         </a>
       </div>
     </div>

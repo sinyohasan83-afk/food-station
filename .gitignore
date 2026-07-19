@@ -6,3 +6,7 @@ database/*.sql
 
 # Konfigurasi tool lokal
 .claude/
+
+# File yang diunggah penyewa (bukti pembayaran, dll) — jangan ikut ter-commit
+uploads/bukti_pembayaran/*
+!uploads/bukti_pembayaran/.gitkeep

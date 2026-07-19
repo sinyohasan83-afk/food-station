@@ -6,7 +6,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 $page = $_GET['page'] ?? 'home';
-$validPages = ['home','gudang','toko','kantin_gudang','kantin_toko','penyewa','tagihan'];
+$validPages = ['home','gudang','toko','kantin_gudang','kantin_toko','penyewa','tagihan','pengajuan','pesan','rekening'];
 if (!in_array($page, $validPages)) $page = 'home';
 
 $pageTitle = 'PT. Food Station — Dashboard';
@@ -40,6 +40,9 @@ $assetBase = '';
         case 'kantin_toko':   $_GET['sub'] = 'toko';   include 'pages/kantin.php'; break;
         case 'penyewa':       include 'pages/penyewa.php'; break;
         case 'tagihan':       include 'pages/tagihan.php'; break;
+        case 'pengajuan':     include 'pages/pengajuan.php'; break;
+        case 'pesan':         include 'pages/pesan.php'; break;
+        case 'rekening':      include 'pages/rekening.php'; break;
       }
       ?>
     </div>
@@ -50,5 +53,6 @@ $assetBase = '';
 <div id="toastContainer" class="toast-container"></div>
 
 <script src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/assets/js/app.js') ?>"></script>
+<?php require_once 'includes/flash.php'; flash_render(); ?>
 </body>
 </html>

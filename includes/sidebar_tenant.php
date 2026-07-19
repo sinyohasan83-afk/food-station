@@ -1,4 +1,31 @@
-<?php $currentPage = $_GET['page'] ?? 'home'; ?>
+<?php
+require_once __DIR__ . '/db.php';
+$currentPage = $_GET['page'] ?? 'home';
+
+$countGudang = $countToko = $countKantin = 0;
+$countUnreadPesan = 0;
+$countBelumLengkap = 0;
+$tenantId = (int)($_SESSION['tenant_id'] ?? 0);
+
+if ($pdo) {
+    try {
+        $countGudang = (int)$pdo->query("SELECT COUNT(*) c FROM units WHERE kategori_id = 1")->fetch()['c'];
+        $countToko   = (int)$pdo->query("SELECT COUNT(*) c FROM units WHERE kategori_id = 2")->fetch()['c'];
+        $countKantin = (int)$pdo->query("SELECT COUNT(*) c FROM units WHERE kategori_id = 3")->fetch()['c'];
+        if ($tenantId > 0) {
+            $stmt = $pdo->prepare("SELECT COUNT(*) c FROM pesan WHERE tenant_account_id = ? AND pengirim = 'admin' AND is_read = 0");
+            $stmt->execute([$tenantId]);
+            $countUnreadPesan = (int)$stmt->fetch()['c'];
+
+            $stmt2 = $pdo->prepare("SELECT COUNT(*) c FROM penyewa WHERE tenant_account_id = ? AND (nik_nib IS NULL OR alamat IS NULL)");
+            $stmt2->execute([$tenantId]);
+            $countBelumLengkap = (int)$stmt2->fetch()['c'];
+        }
+    } catch (PDOException $e) {
+        // biarkan default 0 jika query gagal
+    }
+}
+?>
 <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 <aside class="sidebar w-64 flex-shrink-0 flex flex-col gap-1 overflow-y-auto p-4" id="sidebar">
 
@@ -12,7 +39,7 @@
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
     </span>
     <span>Gudang</span>
-    <span class="ml-auto sidebar-count bg-orange-500/20 text-orange-400">40</span>
+    <span class="ml-auto sidebar-count bg-orange-500/20 text-orange-400"><?= $countGudang ?></span>
   </a>
 
   <a href="portal.php?page=toko"
@@ -21,7 +48,7 @@
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
     </span>
     <span>Toko</span>
-    <span class="ml-auto sidebar-count bg-sky-500/20 text-sky-400">25</span>
+    <span class="ml-auto sidebar-count bg-sky-500/20 text-sky-400"><?= $countToko ?></span>
   </a>
 
   <!-- Kantin dengan submenu -->
@@ -32,7 +59,7 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
       </span>
       <span>Kantin</span>
-      <span class="ml-auto sidebar-count bg-emerald-500/20 text-emerald-400">10</span>
+      <span class="ml-auto sidebar-count bg-emerald-500/20 text-emerald-400"><?= $countKantin ?></span>
       <svg id="kantinArrow"
            class="w-4 h-4 ml-1 text-white/30 transition-transform <?= in_array($currentPage, ['kantin_gudang','kantin_toko']) ? 'rotate-180' : '' ?>"
            fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,6 +79,32 @@
       </a>
     </div>
   </div>
+
+  <div class="mx-3 my-3 border-t border-white/5"></div>
+
+  <div class="px-3 pb-1">
+    <p class="sidebar-label">Komunikasi</p>
+  </div>
+
+  <a href="portal.php?page=pesan" class="sidebar-link <?= $currentPage === 'pesan' ? 'active' : '' ?>">
+    <span class="sidebar-icon bg-teal-500/20 text-teal-400">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+    </span>
+    <span>Pesan Admin</span>
+    <?php if ($countUnreadPesan > 0): ?>
+      <span class="ml-auto sidebar-count bg-teal-500/20 text-teal-400"><?= $countUnreadPesan ?></span>
+    <?php endif; ?>
+  </a>
+
+  <a href="portal.php?page=lengkapi" class="sidebar-link <?= $currentPage === 'lengkapi' ? 'active' : '' ?>">
+    <span class="sidebar-icon bg-pink-500/20 text-pink-400">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    </span>
+    <span>Lengkapi Data</span>
+    <?php if ($countBelumLengkap > 0): ?>
+      <span class="ml-auto sidebar-count bg-pink-500/20 text-pink-400"><?= $countBelumLengkap ?></span>
+    <?php endif; ?>
+  </a>
 
   <!-- Spacer -->
   <div class="mx-3 my-3 border-t border-white/5"></div>

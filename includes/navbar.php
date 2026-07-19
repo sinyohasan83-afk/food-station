@@ -1,6 +1,27 @@
 <?php
-require_once __DIR__ . '/data.php';
-$overdue = array_filter($appData['penyewa'], fn($p) => strtotime($p['jatuhTempo']) < time() || $p['status'] === 'Terlambat');
+require_once __DIR__ . '/db.php';
+
+$overdue = [];
+if ($pdo) {
+    try {
+        $stmt = $pdo->query("
+            SELECT p.nama, u.kode AS kode_unit, u.nama AS nama_unit, t.tanggal_jatuh_tempo
+            FROM tagihan t
+            JOIN penyewa p ON p.id = t.penyewa_id
+            JOIN units u   ON u.id = t.unit_id
+            WHERE t.status != 'Lunas' AND t.tanggal_jatuh_tempo < CURDATE()
+            ORDER BY t.tanggal_jatuh_tempo ASC
+            LIMIT 10
+        ");
+        $overdue = array_map(fn($r) => [
+            'nama' => $r['nama'],
+            'unit' => $r['kode_unit'] . ' – ' . $r['nama_unit'],
+            'jatuhTempo' => $r['tanggal_jatuh_tempo'],
+        ], $stmt->fetchAll());
+    } catch (PDOException $e) {
+        $overdue = [];
+    }
+}
 ?>
 <nav class="navbar sticky top-0 z-50 px-3 sm:px-6 py-3 flex items-center justify-between">
   <div class="flex items-center gap-2 sm:gap-3 min-w-0">

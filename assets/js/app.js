@@ -174,12 +174,14 @@ function filterTable(status) {
 }
 
 /* ===== Unit Booking Modal ===== */
-function openBooking(unitId, unitName, harga) {
+function openBooking(realId, kodeUnit, unitName, harga) {
   const modal = document.getElementById('bookingModal');
   if (!modal) return;
-  document.getElementById('modalUnitId').textContent   = unitId;
+  document.getElementById('modalUnitId').textContent   = kodeUnit;
   document.getElementById('modalUnitName').textContent = unitName;
   document.getElementById('modalHarga').textContent    = harga;
+  const idInput = document.getElementById('bookingUnitIdInput');
+  if (idInput) idInput.value = realId;
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 }
@@ -189,23 +191,20 @@ function closeBooking() {
   modal.classList.add('hidden');
   modal.classList.remove('flex');
 }
-function submitBooking(e) {
-  e.preventDefault();
-  closeBooking();
-  showToast('Permintaan booking berhasil dikirim!', 'success');
-}
 
 /* ===== Dashboard Chart (home page) ===== */
 function initRevenueChart() {
   const ctx = document.getElementById('revenueChart');
   if (!ctx) return;
+  const labels = ctx.dataset.labels ? JSON.parse(ctx.dataset.labels) : ['Jan','Feb','Mar','Apr','Mei','Jun'];
+  const values = ctx.dataset.values ? JSON.parse(ctx.dataset.values) : [0,0,0,0,0,0];
   new Chart(ctx, {
     type: 'line',
     data: {
-      labels: ['Jan','Feb','Mar','Apr','Mei','Jun'],
+      labels: labels,
       datasets: [{
-        label: 'Pendapatan (juta)',
-        data: [380, 420, 395, 460, 440, 450],
+        label: 'Tagihan (juta)',
+        data: values,
         fill: true,
         backgroundColor: 'rgba(99,102,241,0.15)',
         borderColor: '#6366f1',
@@ -230,12 +229,13 @@ function initRevenueChart() {
 function initOccupancyChart() {
   const ctx = document.getElementById('occupancyChart');
   if (!ctx) return;
+  const values = ctx.dataset.values ? JSON.parse(ctx.dataset.values) : [0,0,0,0,0,0];
   new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: ['Gudang Terisi','Gudang Kosong','Toko Terisi','Toko Kosong','Kantin Terisi','Kantin Kosong'],
       datasets: [{
-        data: [28, 12, 20, 5, 7, 3],
+        data: values,
         backgroundColor: ['#6366f1','rgba(99,102,241,0.2)','#f59e0b','rgba(245,158,11,0.2)','#10b981','rgba(16,185,129,0.2)'],
         borderWidth: 0,
         hoverOffset: 8,
@@ -270,7 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Progress bars animate in
   document.querySelectorAll('.progress-fill[data-width]').forEach(el => {
-    const w = el.getAttribute('data-width');
+    const w = el.getAttrib
+    ute('data-width');
     setTimeout(() => { el.style.width = w + '%'; }, 200);
   });
 });

@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once 'includes/auth_tenant.php';
 
 $page       = $_GET['page'] ?? 'home';
-$validPages = ['home', 'gudang', 'toko', 'kantin_gudang', 'kantin_toko'];
+$validPages = ['home', 'gudang', 'toko', 'kantin_gudang', 'kantin_toko', 'pesan', 'lengkapi'];
 if (!in_array($page, $validPages)) $page = 'home';
 
 $pageTitle = 'PT. Food Station — Portal Penyewa';
@@ -46,6 +46,12 @@ $assetBase = '';
           $_GET['sub'] = 'toko';
           include 'pages/kantin.php';
           break;
+        case 'pesan':
+          include 'pages/portal_pesan.php';
+          break;
+        case 'lengkapi':
+          include 'pages/portal_lengkapi.php';
+          break;
       }
       ?>
     </div>
@@ -55,5 +61,6 @@ $assetBase = '';
 <div id="toastContainer" class="toast-container"></div>
 
 <script src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/assets/js/app.js') ?>"></script>
+<?php require_once 'includes/flash.php'; flash_render(); ?>
 </body>
 </html>

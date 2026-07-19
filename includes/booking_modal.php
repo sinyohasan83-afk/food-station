@@ -1,3 +1,7 @@
+<?php
+$tenantNamaPrefill = htmlspecialchars($_SESSION['tenant_nama'] ?? '');
+$bookingRedirect   = htmlspecialchars($bookingRedirectUrl ?? 'portal.php');
+?>
 <!-- Booking Modal -->
 <div id="bookingModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
   <div class="glass-strong rounded-3xl p-8 w-full max-w-md fade-up">
@@ -21,21 +25,29 @@
       </div>
     </div>
 
-    <form onsubmit="submitBooking(event)" class="space-y-4">
+    <form method="POST" action="booking_submit.php" class="space-y-4">
+      <input type="hidden" name="unit_id" id="bookingUnitIdInput" value=""/>
+      <input type="hidden" name="redirect_to" value="<?= $bookingRedirect ?>"/>
       <div>
         <label class="block text-[10px] font-bold uppercase tracking-widest text-white/35 mb-1.5">Nama Calon Penyewa</label>
-        <input type="text" placeholder="Masukkan nama lengkap" required
+        <input type="text" name="nama_pemohon" placeholder="Masukkan nama lengkap" required
+               value="<?= $tenantNamaPrefill ?>"
                class="login-input" style="font-size:13px"/>
       </div>
       <div>
         <label class="block text-[10px] font-bold uppercase tracking-widest text-white/35 mb-1.5">No. Telepon / WhatsApp</label>
-        <input type="tel" placeholder="08xx-xxxx-xxxx" required
+        <input type="tel" name="telepon" placeholder="08xx-xxxx-xxxx" required
                class="login-input" style="font-size:13px"/>
       </div>
       <div>
         <label class="block text-[10px] font-bold uppercase tracking-widest text-white/35 mb-1.5">Rencana Mulai Sewa</label>
-        <input type="date" required class="login-input" style="font-size:13px"
+        <input type="date" name="tanggal_mulai_rencana" required class="login-input" style="font-size:13px"
                min="<?= date('Y-m-d') ?>"/>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold uppercase tracking-widest text-white/35 mb-1.5">Catatan (opsional)</label>
+        <textarea name="catatan" rows="2" placeholder="Kebutuhan atau pertanyaan lain"
+                  class="login-input resize-none" style="height:auto;font-size:13px"></textarea>
       </div>
       <div class="flex gap-3 pt-2">
         <button type="button" onclick="closeBooking()" class="flex-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 font-bold text-sm py-3 rounded-xl transition-all">Batal</button>
