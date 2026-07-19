@@ -18,11 +18,15 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ./
-          # state-name diganti supaya file pelacak sync yang lama (kemungkinan sudah
-          # tidak sinkron dengan isi server) diabaikan dan SEMUA file di-upload ulang
-          # sekali ini. Tidak menghapus apa pun (dangerous-clean-slate tetap mati).
-          state-name: .ftp-deploy-sync-state-v2.json
+          # PENTING: di InfinityFree, isi website yang benar-benar dilayani ke publik
+          # ada di dalam folder htdocs/, bukan langsung di root akun FTP. server-dir
+          # sebelumnya "./" salah — upload jadi mendarat di SAMPING htdocs, bukan di
+          # dalamnya, makanya situs live tidak pernah berubah walau deploy "success".
+          server-dir: ./htdocs/
+          # state-name diganti supaya file pelacak sync yang lama (yang terlanjur
+          # mencatat lokasi salah) diabaikan dan SEMUA file di-upload ulang ke lokasi
+          # yang benar. Tidak menghapus apa pun (dangerous-clean-slate tetap mati).
+          state-name: .ftp-deploy-sync-state-htdocs.json
           log-level: verbose
           exclude: |
             **/.git*
