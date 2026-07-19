@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/db.php';
 
 $isTenant = isset($_SESSION['tenant_logged_in']) && $_SESSION['tenant_logged_in'] === true;
+$isAdmin  = !$isTenant;
 $bookingRedirectUrl = $isTenant ? 'portal.php?page=toko' : 'dashboard.php?page=toko';
 
 $units = [];
@@ -43,6 +44,12 @@ $terisi = array_filter($units, fn($u) => $u['status'] === 'Terisi');
       <div class="w-2 h-2 rounded-full bg-red-500"></div>
       <span class="text-xs font-bold text-white/60"><?= count($terisi) ?> Terisi</span>
     </div>
+    <?php if ($isAdmin): ?>
+      <button onclick="openUnitModal()" class="flex items-center gap-2 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/25 text-emerald-400 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Tambah Unit
+      </button>
+    <?php endif; ?>
   </div>
 </div>
 
@@ -91,6 +98,23 @@ $terisi = array_filter($units, fn($u) => $u['status'] === 'Terisi');
                 class="w-full bg-sky-500/15 hover:bg-sky-500/30 border border-sky-500/30 text-sky-400 text-xs font-bold py-2.5 rounded-xl transition-all">
           + Booking Unit Ini
         </button>
+      <?php elseif ($isAdmin): ?>
+        <div class="flex gap-2">
+          <button onclick='openUnitModal(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                  class="flex-1 bg-indigo-500/15 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-400 text-xs font-bold py-2 rounded-xl transition-all">
+            Edit
+          </button>
+          <?php if ($isKosong): ?>
+            <form method="POST" action="unit_delete.php" onsubmit="return confirm('Hapus unit <?= htmlspecialchars(addslashes($u['kode'])) ?>?');" class="flex-1">
+              <input type="hidden" name="id" value="<?= (int)$u['id'] ?>"/>
+              <input type="hidden" name="redirect_to" value="dashboard.php?page=toko"/>
+              <button type="submit" class="w-full bg-red-500/15 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-xs font-bold py-2 rounded-xl transition-all">Hapus</button>
+            </form>
+          <?php endif; ?>
+        </div>
+        <?php if (!$isKosong): ?>
+          <p class="text-[10px] text-white/20 mt-1.5 text-center">Terisi — kelola lewat Data Penyewa</p>
+        <?php endif; ?>
       <?php elseif ($isKosong): ?>
         <div class="w-full bg-white/3 border border-white/8 rounded-xl py-2.5 text-center text-xs text-white/30 font-semibold">
           Tersedia — kelola lewat Pengajuan Sewa
@@ -103,6 +127,11 @@ $terisi = array_filter($units, fn($u) => $u['status'] === 'Terisi');
 </div>
 
 <?php if ($isTenant): include __DIR__ . '/../includes/booking_modal.php'; endif; ?>
+<?php if ($isAdmin):
+    $unitModalKategoriId = 2;
+    $unitModalRedirect   = 'dashboard.php?page=toko';
+    include __DIR__ . '/../includes/unit_modal.php';
+endif; ?>
 
 <style>
 .ftab { background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.4); border:1px solid rgba(255,255,255,0.08); }
