@@ -19,6 +19,11 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ./
+          # state-name diganti supaya file pelacak sync yang lama (kemungkinan sudah
+          # tidak sinkron dengan isi server) diabaikan dan SEMUA file di-upload ulang
+          # sekali ini. Tidak menghapus apa pun (dangerous-clean-slate tetap mati).
+          state-name: .ftp-deploy-sync-state-v2.json
+          log-level: verbose
           exclude: |
             **/.git*
             **/.git*/**
