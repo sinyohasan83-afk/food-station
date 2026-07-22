@@ -51,11 +51,42 @@ if ($pdo) {
           <p class="text-xs font-black text-white"><?= htmlspecialchars($r['nama_bank']) ?></p>
           <p class="text-sm font-mono font-bold text-emerald-400 mt-0.5"><?= htmlspecialchars($r['nomor_rekening']) ?></p>
           <p class="text-[10px] text-white/40 mt-0.5"><?= htmlspecialchars($r['atas_nama']) ?></p>
+          <button onclick='openBayarModal(<?= json_encode([
+            "bank" => $r["nama_bank"], "norek" => $r["nomor_rekening"], "nama" => $r["atas_nama"],
+          ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
+                  class="mt-2 w-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold py-1.5 rounded-lg transition-all">
+            Bayar Sekarang
+          </button>
         </div>
       <?php endforeach; ?>
     </div>
     <p class="text-[10px] text-white/25 mt-3">Setelah transfer, kirim bukti pembayaran lewat kolom pesan di bawah.</p>
   <?php endif; ?>
+</div>
+
+<!-- Modal Bayar Sekarang -->
+<div id="bayarRekModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
+  <div class="glass-strong rounded-3xl p-6 w-full max-w-sm fade-up text-center">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-extrabold text-white">Bayar via Transfer</h3>
+      <button type="button" onclick="closeBayarModal()" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 transition-all">✕</button>
+    </div>
+    <div class="bg-white p-3 rounded-2xl inline-block mb-4">
+      <img id="bayarQrImg" src="" alt="QR Rekening" class="w-40 h-40" width="160" height="160"/>
+    </div>
+    <p class="text-xs font-black text-white" id="bayarBankName">—</p>
+    <div class="flex items-center justify-center gap-2 mt-1">
+      <p class="text-lg font-mono font-bold text-emerald-400" id="bayarNorek">—</p>
+      <button type="button" onclick="copyNorek()" title="Salin nomor rekening" class="text-white/40 hover:text-emerald-400 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+      </button>
+    </div>
+    <p class="text-xs text-white/40 mt-1" id="bayarAtasNama">—</p>
+    <p class="text-[10px] text-white/25 mt-4 leading-relaxed">
+      QR ini berisi rangkuman detail rekening (bukan QRIS resmi) — scan dengan aplikasi kamera/QR reader untuk menyalin info transfer, atau salin manual nomor rekening di atas.
+      Setelah transfer, jangan lupa kirim bukti pembayaran lewat kolom pesan di bawah.
+    </p>
+  </div>
 </div>
 
 <div class="glass rounded-3xl overflow-hidden flex flex-col" style="height:calc(100vh - 430px); min-height:340px;">
@@ -124,5 +155,27 @@ function clearFile() {
   const preview = document.getElementById('filePreview');
   preview.classList.add('hidden');
   preview.classList.remove('flex');
+}
+
+function openBayarModal(data) {
+  const qrText = `Transfer ke ${data.bank}\nNo. Rek: ${data.norek}\na.n. ${data.nama}`;
+  document.getElementById('bayarQrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(qrText);
+  document.getElementById('bayarBankName').textContent = data.bank;
+  document.getElementById('bayarNorek').textContent = data.norek;
+  document.getElementById('bayarAtasNama').textContent = data.nama;
+  const modal = document.getElementById('bayarRekModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+function closeBayarModal() {
+  const modal = document.getElementById('bayarRekModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+function copyNorek() {
+  const norek = document.getElementById('bayarNorek').textContent;
+  navigator.clipboard.writeText(norek).then(() => {
+    if (typeof showToast === 'function') showToast('Nomor rekening disalin!', 'success');
+  });
 }
 </script>

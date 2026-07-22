@@ -26,12 +26,6 @@ $initials = mb_strtoupper(mb_substr($tenantNama, 0, 1));
   <!-- Right Actions -->
   <div class="flex items-center gap-2 sm:gap-3">
 
-    <!-- Badge Portal Penyewa -->
-    <div class="hidden md:flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-1.5">
-      <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-      <span class="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Akses Terbatas</span>
-    </div>
-
     <!-- Theme Toggle -->
     <button onclick="toggleTheme()" data-theme-toggle class="theme-toggle" title="Ganti ke Mode Terang">
       <svg class="icon-moon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

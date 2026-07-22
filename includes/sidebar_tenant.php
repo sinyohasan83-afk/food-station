@@ -118,21 +118,6 @@ if ($pdo) {
   <!-- Spacer -->
   <div class="mx-3 my-3 border-t border-white/5"></div>
 
-  <!-- Info akses terbatas -->
-  <div class="px-3 mb-2">
-    <div class="bg-amber-500/8 border border-amber-500/20 rounded-xl p-3">
-      <div class="flex items-center gap-2 mb-1.5">
-        <svg class="w-3.5 h-3.5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-        </svg>
-        <p class="text-[9px] font-black uppercase tracking-widest text-amber-400">Akses Terbatas</p>
-      </div>
-      <p class="text-[10px] text-white/35 leading-relaxed">
-        Menu Penagihan dan Data Penyewa hanya tersedia untuk Administrator.
-      </p>
-    </div>
-  </div>
-
   <!-- Hubungi Admin -->
   <div class="px-3">
     <a href="https://wa.me/081290564483" target="_blank"
