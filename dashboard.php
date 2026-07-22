@@ -6,7 +6,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 }
 
 $page = $_GET['page'] ?? 'home';
-$validPages = ['home','gudang','toko','kantin_gudang','kantin_toko','penyewa','tagihan','pengajuan','pesan','rekening'];
+$validPages = ['home','gudang','toko','kantin_gudang','kantin_toko','penyewa','tagihan','pengajuan','pesan','rekening','pengaturan'];
 if (!in_array($page, $validPages)) $page = 'home';
 
 $pageTitle = 'PT. Food Station — Dashboard';
@@ -43,6 +43,7 @@ $assetBase = '';
         case 'pengajuan':     include 'pages/pengajuan.php'; break;
         case 'pesan':         include 'pages/pesan.php'; break;
         case 'rekening':      include 'pages/rekening.php'; break;
+        case 'pengaturan':    include 'pages/pengaturan.php'; break;
       }
       ?>
     </div>

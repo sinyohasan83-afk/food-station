@@ -6,6 +6,10 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     header('Location: dashboard.php');
     exit;
 }
+if (isset($_SESSION['tenant_logged_in']) && $_SESSION['tenant_logged_in'] === true) {
+    header('Location: portal.php');
+    exit;
+}
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -17,35 +21,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         require_once 'includes/db.php';
         try {
+            // 1) Coba sebagai akun admin/staff
             $stmt = $pdo->prepare("SELECT id, username, password, nama, role, is_active FROM users WHERE username = ? LIMIT 1");
             $stmt->execute([$user]);
             $row = $stmt->fetch();
 
-            $valid = false;
+            $validAdmin = false;
             if ($row && $row['is_active']) {
                 if (str_starts_with($row['password'], '$2y$') || str_starts_with($row['password'], '$2a$')) {
                     // bcrypt
-                    $valid = password_verify($pass, $row['password']);
+                    $validAdmin = password_verify($pass, $row['password']);
                 } else {
                     // hash lama (MD5) — otomatis upgrade ke bcrypt setelah login berhasil
-                    $valid = ($row['password'] === md5($pass));
-                    if ($valid) {
+                    $validAdmin = ($row['password'] === md5($pass));
+                    if ($validAdmin) {
                         $upgrade = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
                         $upgrade->execute([password_hash($pass, PASSWORD_DEFAULT), $row['id']]);
                     }
                 }
             }
 
-            if ($valid) {
+            if ($validAdmin) {
                 $_SESSION['logged_in']  = true;
                 $_SESSION['username']   = $row['nama'];
                 $_SESSION['user_role']  = $row['role'];
                 $_SESSION['user_id']    = $row['id'];
                 header('Location: dashboard.php');
                 exit;
-            } else {
-                $error = 'Username atau password salah, atau akun tidak aktif.';
             }
+
+            // 2) Kalau bukan akun admin, coba sebagai akun penyewa
+            $stmt2 = $pdo->prepare("SELECT id, nama, username, password, status FROM tenant_accounts WHERE username = ? LIMIT 1");
+            $stmt2->execute([$user]);
+            $tenant = $stmt2->fetch();
+
+            if ($tenant && $tenant['status'] === 'aktif' && password_verify($pass, $tenant['password'])) {
+                $_SESSION['tenant_logged_in'] = true;
+                $_SESSION['tenant_id']        = $tenant['id'];
+                $_SESSION['tenant_nama']      = $tenant['nama'];
+                $_SESSION['tenant_username']  = $tenant['username'];
+                header('Location: portal.php');
+                exit;
+            }
+
+            $error = 'Username atau password salah, atau akun tidak aktif.';
         } catch (PDOException $e) {
             $error = 'Koneksi database gagal. Coba lagi nanti.';
         }
@@ -84,7 +103,7 @@ $assetBase  = '';
           <span style="display:none;font-size:32px;font-weight:900;color:#818cf8">FS</span>
         </div>
         <h1 class="text-2xl font-extrabold tracking-widest uppercase text-white mb-1">Food Station</h1>
-        <p class="text-white/40 text-sm">Management & Leasing System v2.1</p>
+        <p class="text-white/40 text-sm">Management & Leasing System</p>
       </div>
 
       <!-- Stats Row -->
@@ -136,38 +155,13 @@ $assetBase  = '';
             </button>
           </div>
         </div>
-        <button type="submit" class="login-btn mt-2">Masuk ke Panel Admin</button>
+        <button type="submit" class="login-btn mt-2">Masuk</button>
       </form>
 
       <p class="text-center text-white/20 text-xs mt-6">
-        Akses terbatas untuk administrator PT. Food Station
+        Untuk Administrator maupun Penyewa PT. Food Station.<br>
+        Belum punya akun? Hubungi admin lewat kontak di bawah.
       </p>
-
-      <!-- Divider -->
-      <div class="flex items-center gap-3 my-5">
-        <div class="flex-1 border-t border-white/8"></div>
-        <span class="text-[10px] text-white/20 font-semibold uppercase tracking-widest">atau</span>
-        <div class="flex-1 border-t border-white/8"></div>
-      </div>
-
-      <!-- Akses Portal Penyewa -->
-      <div class="bg-emerald-500/5 border border-emerald-500/15 rounded-2xl p-4 text-center">
-        <p class="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-400/70 mb-3">Portal Penyewa</p>
-        <p class="text-xs text-white/30 mb-4 leading-relaxed">
-          Ingin melihat ketersediaan Gudang, Toko, atau Kantin?<br>
-          Daftar atau login sebagai penyewa.
-        </p>
-        <div class="flex gap-2">
-          <a href="register.php"
-             class="flex-1 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/25 text-emerald-400 text-xs font-bold py-2.5 rounded-xl transition-all text-center">
-            Daftar Penyewa
-          </a>
-          <a href="tenant_login.php"
-             class="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white/90 text-xs font-bold py-2.5 rounded-xl transition-all text-center">
-            Login Penyewa
-          </a>
-        </div>
-      </div>
 
     </div>
 

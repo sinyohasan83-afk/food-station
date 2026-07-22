@@ -9,5 +9,5 @@ if (ini_get('session.use_cookies')) {
     );
 }
 session_destroy();
-header('Location: tenant_login.php');
+header('Location: index.php');
 exit;

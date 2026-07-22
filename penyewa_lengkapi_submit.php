@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once 'includes/flash.php';
 
 if (!isset($_SESSION['tenant_logged_in']) || $_SESSION['tenant_logged_in'] !== true) {
-    header('Location: tenant_login.php');
+    header('Location: index.php');
     exit;
 }
 
