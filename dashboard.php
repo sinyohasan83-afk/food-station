@@ -9,6 +9,12 @@ $page = $_GET['page'] ?? 'home';
 $validPages = ['home','gudang','toko','kantin_gudang','kantin_toko','penyewa','tagihan','pengajuan','pesan','rekening','pengaturan'];
 if (!in_array($page, $validPages)) $page = 'home';
 
+// Menu Pengaturan khusus Superadmin — cek sebelum ada output apa pun supaya redirect berfungsi
+if ($page === 'pengaturan' && ($_SESSION['user_role'] ?? '') !== 'superadmin') {
+    require_once 'includes/flash.php';
+    flash_redirect('dashboard.php?page=home', 'error', 'Akses ditolak. Menu Pengaturan hanya untuk Superadmin.');
+}
+
 $pageTitle = 'PT. Food Station — Dashboard';
 $assetBase = '';
 ?>
