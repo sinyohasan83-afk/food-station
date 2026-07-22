@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require_once 'includes/db.php';
         try {
             // 1) Coba sebagai akun admin/staff
-            $stmt = $pdo->prepare("SELECT id, username, password, nama, role, is_active FROM users WHERE username = ? LIMIT 1");
+            $stmt = $pdo->prepare("SELECT id, username, password, nama, email, role, is_active FROM users WHERE username = ? LIMIT 1");
             $stmt->execute([$user]);
             $row = $stmt->fetch();
 
@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($validAdmin) {
                 $_SESSION['logged_in']  = true;
                 $_SESSION['username']   = $row['nama'];
+                $_SESSION['user_email'] = $row['email'];
                 $_SESSION['user_role']  = $row['role'];
                 $_SESSION['user_id']    = $row['id'];
                 header('Location: dashboard.php');

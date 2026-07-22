@@ -103,16 +103,21 @@ if ($pdo) {
     </div>
 
     <!-- User avatar + logout -->
+    <?php
+      $navUserNama  = $_SESSION['username'] ?? 'Admin';
+      $navUserEmail = $_SESSION['user_email'] ?? '';
+      $navUserInitial = mb_strtoupper(mb_substr($navUserNama, 0, 1));
+    ?>
     <div class="relative" id="userToggle">
       <button onclick="toggleUser()" class="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-3 py-2 transition-all">
-        <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-black">A</div>
-        <span class="hidden md:block text-sm font-semibold">Admin</span>
+        <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-black"><?= htmlspecialchars($navUserInitial) ?></div>
+        <span class="hidden md:block text-sm font-semibold truncate max-w-[120px]"><?= htmlspecialchars($navUserNama) ?></span>
         <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </button>
       <div id="userBox" class="notif-dropdown hidden absolute right-0 mt-2 w-48">
         <div class="pb-3 mb-3 border-b border-white/10">
-          <p class="text-sm font-bold">Administrator</p>
-          <p class="text-[10px] text-white/40">admin@foodstation.id</p>
+          <p class="text-sm font-bold truncate"><?= htmlspecialchars($navUserNama) ?></p>
+          <p class="text-[10px] text-white/40 truncate"><?= htmlspecialchars($navUserEmail ?: '-') ?></p>
         </div>
         <a href="<?= $assetBase ?? '' ?>logout.php" class="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 font-semibold transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>

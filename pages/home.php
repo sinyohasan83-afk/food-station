@@ -61,7 +61,7 @@ $totalTersedia = $totalUnit - $totalTerisi;
 <div class="mb-8">
   <p class="text-white/30 text-xs font-semibold uppercase tracking-widest mb-1">Dashboard</p>
   <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Ringkasan Operasional</h1>
-  <p class="text-white/35 text-sm mt-1">Selamat datang kembali, Administrator. Berikut kondisi unit per hari ini.</p>
+  <p class="text-white/35 text-sm mt-1">Selamat datang kembali, <?= htmlspecialchars($_SESSION['username'] ?? 'Administrator') ?>. Berikut kondisi unit per hari ini.</p>
 </div>
 
 <!-- Stat Cards -->
