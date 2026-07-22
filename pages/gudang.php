@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/db.php';
 
 $isTenant = isset($_SESSION['tenant_logged_in']) && $_SESSION['tenant_logged_in'] === true;
 $isAdmin  = !$isTenant;
+$canManageUnits = $isAdmin && (($_SESSION['user_role'] ?? '') === 'superadmin');
 $bookingRedirectUrl = $isTenant ? 'portal.php?page=gudang' : 'dashboard.php?page=gudang';
 
 $units = [];
@@ -45,7 +46,7 @@ $terisi = array_filter($units, fn($u) => $u['status'] === 'Terisi');
       <div class="w-2 h-2 rounded-full bg-red-500"></div>
       <span class="text-xs font-bold text-white/60"><?= count($terisi) ?> Terisi</span>
     </div>
-    <?php if ($isAdmin): ?>
+    <?php if ($canManageUnits): ?>
       <button onclick="openUnitModal()" class="flex items-center gap-2 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/25 text-emerald-400 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Tambah Unit
@@ -106,7 +107,7 @@ $terisi = array_filter($units, fn($u) => $u['status'] === 'Terisi');
                 class="w-full bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 text-xs font-bold py-2.5 rounded-xl transition-all">
           + Booking Unit Ini
         </button>
-      <?php elseif ($isAdmin): ?>
+      <?php elseif ($canManageUnits): ?>
         <div class="flex gap-2">
           <button onclick='openUnitModal(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'
                   class="flex-1 bg-indigo-500/15 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-400 text-xs font-bold py-2 rounded-xl transition-all">
@@ -123,6 +124,10 @@ $terisi = array_filter($units, fn($u) => $u['status'] === 'Terisi');
         <?php if (!$isKosong): ?>
           <p class="text-[10px] text-white/20 mt-1.5 text-center">Terisi — kelola lewat Data Penyewa</p>
         <?php endif; ?>
+      <?php elseif ($isAdmin): ?>
+        <div class="w-full bg-white/3 border border-white/8 rounded-xl py-2.5 text-center text-xs <?= $isKosong ? 'text-emerald-400/70' : 'text-white/25' ?> font-semibold">
+          <?= $isKosong ? 'Tersedia' : 'Terisi' ?>
+        </div>
       <?php elseif ($isKosong): ?>
         <div class="w-full bg-white/3 border border-white/8 rounded-xl py-2.5 text-center text-xs text-white/30 font-semibold">
           Tersedia — kelola lewat Pengajuan Sewa
@@ -137,7 +142,7 @@ $terisi = array_filter($units, fn($u) => $u['status'] === 'Terisi');
 </div>
 
 <?php if ($isTenant): include __DIR__ . '/../includes/booking_modal.php'; endif; ?>
-<?php if ($isAdmin):
+<?php if ($canManageUnits):
     $unitModalKategoriId = 1;
     $unitModalRedirect   = 'dashboard.php?page=gudang';
     include __DIR__ . '/../includes/unit_modal.php';
